@@ -65,4 +65,34 @@ handle_noop:
 	// unknown "method"
 	err
 
-// triple:
+triple:
+	txn ApplicationArgs 1
+	callsub triplearg
+	txn ApplicationArgs 2
+	btoi
+	==
+	return
+
+triplearg:
+	btoi
+	int 3
+	*
+	retsub
+
+compare:
+	txn ApplicationArgs 1 // --app-arg str:51
+	callsub ctoi
+	txn ApplicationArgs 2 // --app-arg int:51
+	return
+
+ctoi:
+	int 0
+	getbyte
+	byte "0"
+	int 0
+	getbyte
+	-
+	retsub
+
+// handle_closeout:
+
