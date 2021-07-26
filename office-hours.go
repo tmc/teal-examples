@@ -1,6 +1,12 @@
 package main
 
-import "github.com/algorand/go-algorand-sdk/types"
+import (
+	"os"
+
+	"github.com/algorand/go-algorand-sdk/types"
+	"github.com/tmc/teal-examples/avm"
+	"github.com/tmc/teal-examples/globals"
+)
 
 var txn types.Transaction
 
@@ -64,11 +70,51 @@ func main() {
 }
 
 func handle_createapp() {
+	// int 1
+	// return
+	os.Exit(1)
+}
+func handle_noop() {
+	// txn ApplicationArgs 0
+	// byte "triple"
+	// ==
+	// bnz triple
+	if string(txn.ApplicationArgs[0]) == "triple" {
+		triple()
+	}
+
+	// txn ApplicationArgs 0
+	// byte "compare"
+	// ==
+	// bnz compare
+	if string(txn.ApplicationArgs[0]) == "compare" {
+		compare()
+	}
+
+	// unknown "method"
+	// err
+	panic("unknown method")
 }
 
-func handle_noop() {
-}
 func handle_optin() {
+	// A single txn with no args must be a simple optin.  Allow
+	// all.  But if there are more transactions or arguments, fall
+	// through to NOOP handling, as the user must want to use the
+	// app immediately.
+
+	// global GroupSize
+	// int 1
+	// ==
+	// txn NumAppArgs
+	// ||
+	// bnz handle_noop
+	if globals.GroupSize == 1 || len(txn.ApplicationArgs) != 0 {
+		handle_noop()
+	}
+
+	// int 1
+	// return
+	os.Exit(1)
 }
 func handle_closeout() {
 }
@@ -77,55 +123,39 @@ func handle_updateapp() {
 func handle_deleteapp() {
 }
 
+func triple() {
+	// txn ApplicationArgs 1
+	// callsub triplearg
+	x1 := triplearg(txn.ApplicationArgs[1])
+
+	// txn ApplicationArgs 2
+	// btoi
+	x2 := avm.Btoi(txn.ApplicationArgs[2])
+
+	// ==
+	// return
+	if x1 == x2 {
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func triplearg(arg []byte) int {
+	// btoi
+	// int 3
+	// *
+	// retsub
+	x1 := avm.Btoi(arg)
+	return x1 * 3
+}
+
+func compare() {}
+
 /*
 
-handle_createapp:
-        int 1
-        return
-
-handle_optin:
-        // A single txn with no args must be a simple optin.  Allow
-        // all.  But if there are more transactions or arguments, fall
-        // through to NOOP handling, as the user must want to use the
-        // app immediately.
-        global GroupSize
-        int 1
-        ==
-        txn NumAppArgs
-        ||
-        bnz handle_noop
-        int 1
-        return
-
-
-handle_noop:
-        txn ApplicationArgs 0
-        byte "triple"
-        ==
-        bnz triple
-
-
-        txn ApplicationArgs 0
-        byte "compare"
-        ==
-        bnz compare
-
-        // unknown "method"
-        err
-
 triple:
-        txn ApplicationArgs 1
-        callsub triplearg
-        txn ApplicationArgs 2
-        btoi
-        ==
-        return
 
 triplearg:
-        btoi
-        int 3
-        *
-        retsub
 
 compare:
         txn ApplicationArgs 1   // --app-arg str:51
